@@ -111,16 +111,6 @@ public class AGameTest extends JFrame implements KeyListener {
 			}
 		});
 		t2.start();
-
-		String command = "PLAYER 2 UP\n";
-		System.out.println("Sending: " + command);
-		out.println(command);
-		out.flush();
-		
-		command = "PLAYER 1 DOWN\n";
-		System.out.println("Sending: " + command);
-		out.println(command);
-		out.flush();
 		
 		s.close();
 	}
