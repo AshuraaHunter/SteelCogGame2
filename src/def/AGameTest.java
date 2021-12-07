@@ -5,7 +5,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-
+import java.net.UnknownHostException;
 import java.awt.Color;
 import java.awt.Container;
 import java.awt.Font;
@@ -31,7 +31,7 @@ public class AGameTest extends JFrame implements KeyListener {
 	
 	private String cmd;
 	
-	public AGameTest() {
+	public AGameTest() throws UnknownHostException, IOException {
 		super("Steel Cog"); // window title
 		setSize(GameProperties.SCREEN_WIDTH, GameProperties.SCREEN_HEIGHT);
 		
@@ -50,6 +50,8 @@ public class AGameTest extends JFrame implements KeyListener {
 		
 		content.addKeyListener(this);
 		content.setFocusable(true);
+		
+		handleSocket();
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
@@ -82,7 +84,9 @@ public class AGameTest extends JFrame implements KeyListener {
 			}
 		});
 		t1.start( );
+	}
 
+	public void handleSocket() throws UnknownHostException, IOException {
 		//set up a communication socket
 		Socket s = new Socket("localhost", SERVER_PORT);
 		
