@@ -145,6 +145,6 @@ public class AGameTest extends JFrame implements KeyListener {
 	@Override
 	public void keyReleased(KeyEvent e) {
 		// TODO Auto-generated method stub
-		comm.setCmd("");
+		cmd = "";
 	}
 }
