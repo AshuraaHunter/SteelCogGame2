@@ -29,7 +29,10 @@ public class AGameTest extends JFrame implements KeyListener {
 	
 	private Container content;
 	
-	private String cmd;
+	private String cmd = "";
+	
+	//set up a communication socket
+	Socket s = new Socket("localhost", SERVER_PORT);
 	
 	public AGameTest() throws UnknownHostException, IOException {
 		super("Steel Cog"); // window title
@@ -57,6 +60,9 @@ public class AGameTest extends JFrame implements KeyListener {
 	}
 
 	public static void main(String[] args) throws IOException {
+		AGameTest myGame = new AGameTest();
+		myGame.setVisible(true);
+		
 		final ServerSocket client = new ServerSocket(CLIENT_PORT);
 		
 		//set up listening server
@@ -72,8 +78,6 @@ public class AGameTest extends JFrame implements KeyListener {
 							AService myService = new AService(s2);
 							Thread t = new Thread(myService);
 							t.start();
-							SteelCog myGame = new SteelCog();
-							myGame.setVisible(true);
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -84,12 +88,10 @@ public class AGameTest extends JFrame implements KeyListener {
 			}
 		});
 		t1.start( );
+		System.out.println("here");
 	}
 
 	public void handleSocket() throws UnknownHostException, IOException {
-		//set up a communication socket
-		Socket s = new Socket("localhost", SERVER_PORT);
-		
 		//Initialize data stream to send data out
 		OutputStream outstream = s.getOutputStream();
 		PrintWriter out = new PrintWriter(outstream);
@@ -98,8 +100,8 @@ public class AGameTest extends JFrame implements KeyListener {
 			@Override
 			public void run() {
 				while(true) {
-					System.out.println("Sending: "+cmd);
-					if (cmd != "") {
+					if (cmd != "null" || cmd != "") {
+						System.out.println("Sending: "+cmd);
 						out.println(cmd);
 						out.flush();
 					} try {
