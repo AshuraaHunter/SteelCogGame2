@@ -21,6 +21,10 @@ import javax.swing.JOptionPane;
 
 public class AGameTest extends JFrame implements KeyListener {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3752828081632999334L;
 	final static int CLIENT_PORT = 5656;
 	final static int SERVER_PORT = 5556;
 	
@@ -83,12 +87,13 @@ public class AGameTest extends JFrame implements KeyListener {
 							e.printStackTrace();
 						}
 						System.out.println("client connected");
+						System.out.println("here1");
 					}
 				}
 			}
 		});
-		t1.start( );
-		System.out.println("here");
+		t1.start();
+		System.out.println("here2");
 	}
 
 	public void handleSocket() throws UnknownHostException, IOException {
@@ -105,7 +110,7 @@ public class AGameTest extends JFrame implements KeyListener {
 						out.println(cmd);
 						out.flush();
 					} try {
-						Thread.sleep(50);
+						Thread.sleep(1000);
 					} catch (Exception e) {
 						
 					}

@@ -5,6 +5,11 @@ import java.awt.Container;
 import java.awt.Font;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -13,11 +18,14 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 
-public class SteelCog extends JFrame implements KeyListener {
+// client version
+public class SteelCogClient extends JFrame implements KeyListener {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 8926652988288523971L;
+	final static int CLIENT_PORT = 5656;
+	final static int SERVER_PORT = 5556;
 	
 	private AgentLime myAgentLime;
 	private Wall[] myWall = new Wall[6];
@@ -36,6 +44,8 @@ public class SteelCog extends JFrame implements KeyListener {
 	private int[] xArray = new int[] {100,-100,560,40,560,590};
 	private int[] yArray = new int[] {370,370,400,40,0,100};
 	
+	private int[] moveArray = new int[] {0,0};
+	
 	private int score = 10000;
 	private int dimensionCnt = 0; // tracks the amount of times the player has phased across dimensions
 	private int stepCnt = 0; // tracks steps taken
@@ -53,7 +63,9 @@ public class SteelCog extends JFrame implements KeyListener {
 	private PopUpMessage popup;
 	private GameSQLite database;
 	
-	public SteelCog() {
+	private String cmd = "";
+	
+	public SteelCogClient() throws IOException {
 		super("Steel Cog"); // window title
 		setSize(GameProperties.SCREEN_WIDTH, GameProperties.SCREEN_HEIGHT);
 		
@@ -223,12 +235,242 @@ public class SteelCog extends JFrame implements KeyListener {
 		content.addKeyListener(this);
 		content.setFocusable(true);
 		
+		
+		final ServerSocket client = new ServerSocket(CLIENT_PORT);
+		
+		//set up listening server
+		Thread t1 = new Thread(new Runnable() {
+			public void run() {
+				synchronized(this) {
+					
+					System.out.println("Waiting for server responses...");
+					while(true) {
+						Socket s2;
+						try {
+							s2 = client.accept();
+							AService myService = new AService(s2, myAgentLime, myLavaWall[0], myLavaWall[1], myLavaWall[2],
+									myFinish, myBox, myStopBtn); //pass in lime label
+							Thread t = new Thread(myService);
+							t.start();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+						System.out.println("client connected");
+						System.out.println("here1");
+					}
+				}
+			}
+		});
+		t1.start();
+		
+		// repeat this process for every object that is interact-able
+		Thread t2 = new Thread(new Runnable() {
+			public void run() {
+				synchronized(this) {
+				
+					System.out.println("Fetch Lime.");
+					while(true) {
+						try {
+							//set up a communication socket
+							Socket s = new Socket("localhost", SERVER_PORT);
+							
+							//Initialize data stream to send data out
+							OutputStream outstream = s.getOutputStream();
+							PrintWriter out = new PrintWriter(outstream);
+							
+							int isAlive = (myAgentLime.getIsAlive() ? 1 : 0);
+
+							String command = "GETLIME "+moveArray[0]+" "+moveArray[1]+" "
+									+myAgentLime.getIsSpace()+" "+isAlive+"/n";
+							System.out.println("Sending: " + command);
+							out.println(command);
+							out.flush();
+							s.close();
+							
+							moveArray[0]=0;moveArray[1]=1;
+							myAgentLime.setIsSpace(0);
+							Thread.sleep(200);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch(Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		});
+		t2.start();
+		
+		Thread t3 = new Thread(new Runnable() {
+			public void run() {
+				synchronized(this) {
+				
+					System.out.println("Fetch LavaWall0.");
+					while(true) {
+						try {
+							//set up a communication socket
+							Socket s = new Socket("localhost", SERVER_PORT);
+							
+							//Initialize data stream to send data out
+							OutputStream outstream = s.getOutputStream();
+							PrintWriter out = new PrintWriter(outstream);
+
+							String command = "GETLAVAWALL0\n";
+							System.out.println("Sending: " + command);
+							out.println(command);
+							out.flush();
+							s.close();
+							Thread.sleep(50);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch(Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		});
+		t3.start();
+		
+		Thread t4 = new Thread(new Runnable() {
+			public void run() {
+				synchronized(this) {
+				
+					System.out.println("Fetch LavaWall1.");
+					while(true) {
+						try {
+							//set up a communication socket
+							Socket s = new Socket("localhost", SERVER_PORT);
+							
+							//Initialize data stream to send data out
+							OutputStream outstream = s.getOutputStream();
+							PrintWriter out = new PrintWriter(outstream);
+
+							String command = "GETLAVAWALL1\n";
+							System.out.println("Sending: " + command);
+							out.println(command);
+							out.flush();
+							s.close();
+							Thread.sleep(50);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch(Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		});
+		t4.start();
+		
+		Thread t5 = new Thread(new Runnable() {
+			public void run() {
+				synchronized(this) {
+				
+					System.out.println("Fetch LavaWall2.");
+					while(true) {
+						try {
+							//set up a communication socket
+							Socket s = new Socket("localhost", SERVER_PORT);
+							
+							//Initialize data stream to send data out
+							OutputStream outstream = s.getOutputStream();
+							PrintWriter out = new PrintWriter(outstream);
+
+							String command = "GETLAVAWALL2\n";
+							System.out.println("Sending: " + command);
+							out.println(command);
+							out.flush();
+							s.close();
+							Thread.sleep(50);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch(Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		});
+		t5.start();
+		
+		Thread t6 = new Thread(new Runnable() {
+			public void run() {
+				synchronized(this) {
+				
+					System.out.println("Fetch Box.");
+					while(true) {
+						try {
+							//set up a communication socket
+							Socket s = new Socket("localhost", SERVER_PORT);
+							
+							//Initialize data stream to send data out
+							OutputStream outstream = s.getOutputStream();
+							PrintWriter out = new PrintWriter(outstream);
+
+							String command = "GETBOX\n";
+							System.out.println("Sending: " + command);
+							out.println(command);
+							out.flush();
+							s.close();
+							Thread.sleep(50);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch(Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		});
+		t6.start();
+		
+		Thread t7 = new Thread(new Runnable() {
+			public void run() {
+				synchronized(this) {
+				
+					System.out.println("Fetch Finish.");
+					while(true) {
+						try {
+							//set up a communication socket
+							Socket s = new Socket("localhost", SERVER_PORT);
+							
+							//Initialize data stream to send data out
+							OutputStream outstream = s.getOutputStream();
+							PrintWriter out = new PrintWriter(outstream);
+
+							String command = "GETFINISH\n";
+							System.out.println("Sending: " + command);
+							out.println(command);
+							out.flush();
+							s.close();
+							Thread.sleep(50);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch(Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		});
+		t7.start();
+		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 	
-	public static void main(String[] args) {
-		SteelCog myGame = new SteelCog();
+	public static void main(String[] args) throws IOException {
+		SteelCogClient myGame = new SteelCogClient();
 		myGame.setVisible(true);
+		
+		System.out.println("here2");
 	}
 
 	@Override
@@ -237,6 +479,16 @@ public class SteelCog extends JFrame implements KeyListener {
 		
 	}
 
+	/*
+	 * [9:40 a.m.] Andrews,Darren
+		as you press a key to move the lime, it send the new coordinates to the server. 
+		BService will receive and parse the coordinates out of that command to update the agent lime object on the server
+
+		[9:41 a.m.] Andrews,Darren
+		when your GETLIME command thread sends to the server again, 
+		it will then get the new coordinates of the lime back from the server and update the label
+	 *
+	 */
 	@Override
 	public void keyPressed(KeyEvent e) {
 		int ax = myAgentLime.getX();
@@ -244,8 +496,6 @@ public class SteelCog extends JFrame implements KeyListener {
 		int bx = myBox.getX();
 		int by = myBox.getY();
 		
-		// need to setup collision down here (i.e. looping through each wall to check for overlap)
-		// not sure how to do finish collision yet
 		if (!myAgentLime.getIsAlive()) {
 			myAgentLime.setCanMove(false);
 		}
@@ -259,7 +509,7 @@ public class SteelCog extends JFrame implements KeyListener {
 				}
 			}
 			if (myAgentLime.getCanMove()) {
-				ay -= GameProperties.CHARACTER_STEP;
+				moveArray[1]-=GameProperties.CHARACTER_STEP;
 				stepCnt++;
 				if (ay + myAgentLime.getHeight() < 0) {
 					ay = GameProperties.SCREEN_HEIGHT;
@@ -280,7 +530,7 @@ public class SteelCog extends JFrame implements KeyListener {
 				}
 			}
 			if (myAgentLime.getCanMove()) {
-				ay += GameProperties.CHARACTER_STEP;
+				moveArray[1]+=GameProperties.CHARACTER_STEP;
 				stepCnt++;
 				if (ay > GameProperties.SCREEN_HEIGHT) {
 					ay = -1 * myAgentLime.getHeight();
@@ -301,7 +551,7 @@ public class SteelCog extends JFrame implements KeyListener {
 					myAgentLime.setCanMove(false);
 				}
 			} if (myAgentLime.getCanMove()) {
-				ax -= GameProperties.CHARACTER_STEP;
+				moveArray[0]-=GameProperties.CHARACTER_STEP;
 				stepCnt++;
 				if (myBox.getVisible() && myAgentLime.r.intersects(myBox.getRectangle())) {
 					bx -= GameProperties.CHARACTER_STEP;
@@ -317,13 +567,16 @@ public class SteelCog extends JFrame implements KeyListener {
 					myAgentLime.setCanMove(false);
 				}
 			} if (myAgentLime.getCanMove()) {
-				ax += GameProperties.CHARACTER_STEP;
+				moveArray[0]+=GameProperties.CHARACTER_STEP;
 				stepCnt++;
 				if (myBox.getVisible() && myAgentLime.r.intersects(myBox.getRectangle())) {
 					bx += GameProperties.CHARACTER_STEP;
 				}
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+			moveArray[0]=0;
+			moveArray[1]=0;
+			myAgentLime.setIsSpace(1);
 			if (myAgentLime.r.intersects(myStopBtn.getRectangle())) {
 				if (!myStopBtn.getIsOn()) {
 					myStopBtn.setIsOn(true);
@@ -345,14 +598,14 @@ public class SteelCog extends JFrame implements KeyListener {
 			}
 		}
 		
+		//comment out all 3 lines. do in AService
 		myAgentLime.setX(ax);
 		myAgentLime.setY(ay);
-		
 		AgentLimeLabel.setLocation(myAgentLime.getX(), myAgentLime.getY());
 		
+		//comment out all 3 lines. do in AService
 		myBox.setX(bx);
 		myBox.setY(by);
-		
 		BoxLabel.setLocation(myBox.getX(), myBox.getY());
 		
 		if (myBox.getVisible() && myBox.r.intersects(myGoal.getRectangle())) {
