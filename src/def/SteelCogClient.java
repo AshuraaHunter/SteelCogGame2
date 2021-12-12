@@ -45,25 +45,18 @@ public class SteelCogClient extends JFrame implements KeyListener {
 	private int[] yArray = new int[] {370,370,400,40,0,100};
 	
 	private int[] moveArray = new int[] {0,0};
-	
-	private int score = 10000;
-	private int dimensionCnt = 0; // tracks the amount of times the player has phased across dimensions
-	private int stepCnt = 0; // tracks steps taken
+	private int[] boxArray = new int[] {0,0};
 	
 	private String name;
 	
 	private Timer time, gameCheck;
-	private int timeLeft = 99;
+	private int timeLeft = 150;
 	private final int timePause = 1000; // delay in milliseconds before timer start
 	private final int timeInterval = 1000; // delay in milliseconds for iteration of timer
-	
-	private boolean won = false;
 	
 	private Container content;
 	private PopUpMessage popup;
 	private GameSQLite database;
-	
-	private String cmd = "";
 	
 	public SteelCogClient() throws IOException {
 		super("Steel Cog"); // window title
@@ -94,9 +87,6 @@ public class SteelCogClient extends JFrame implements KeyListener {
 		for(int i=0; i<myLavaWall.length && i<LavaWallLabel.length; i++) {
 			  myLavaWall[i] = new LavaWall();
 			  LavaWallLabel[i] = new JLabel();
-			  myLavaWall[i].setLavaWallLabel(LavaWallLabel[i]);
-			  myLavaWall[i].setAgentLime(myAgentLime);
-			  myLavaWall[i].setAgentLimeLabel(AgentLimeLabel);
 		}
 		LavaWallImage = new ImageIcon(getClass().getResource(myLavaWall[0].getFilename()));
 		for (int i = 0; i < LavaWallLabel.length; i++) {
@@ -156,7 +146,6 @@ public class SteelCogClient extends JFrame implements KeyListener {
 		// myFinish.setY(50);
 		myFinish.setX(9999);
 		myFinish.setY(9999);
-		myFinish.setVisible(false);
 		
 		myBox.setX(515);
 		myBox.setY(340);
@@ -189,30 +178,31 @@ public class SteelCogClient extends JFrame implements KeyListener {
 		TimeLabel.setText(Integer.toString(timeLeft));
         time.scheduleAtFixedRate(new TimerTask() {
             public void run() {
-            	if (timeLeft == 1) {
-                    timeLeft--;
-                    TimeLabel.setText(Integer.toString(timeLeft));
-                    time.cancel();
+            	TimeLabel.setText(Integer.toString(timeLeft));
+            	if (timeLeft == 0) {
+            		time.cancel();
                     gameCheck.cancel();
-                    gameOver(name,score,myAgentLime.getIsAlive(),true);
-                } else {
-                    timeLeft--;
-                    TimeLabel.setText(Integer.toString(timeLeft));
-                }
+                    gameOver(name,0,myAgentLime.getIsAlive(),true);
+            	}
             }
         }, timePause, timeInterval);
         gameCheck.schedule(new TimerTask() {
 			@Override
 			public void run() {
 				// TODO Auto-generated method stub
-				if (won==true || !myAgentLime.getIsAlive()) {
+				for (int i = 0; i < myLavaWall.length; i++) {
+					if (myAgentLime.r.intersects(myLavaWall[i].getRectangle())) {
+						myAgentLime.setIsAlive(false);
+					}
+				}
+				if (myAgentLime.getTouchdown() || !myAgentLime.getIsAlive()) {
             		time.cancel();
             		gameCheck.cancel();
             		myAgentLime.setCanMove(false);
             		for (int i=0; i<myLavaWall.length && i<LavaWallLabel.length; i++) {
             			myLavaWall[i].setMoving(false);
             		}
-            		gameOver(name,score,myAgentLime.getIsAlive(),false);
+            		gameOver(name,0,myAgentLime.getIsAlive(),false);
             	}
 			}
         },0,1);
@@ -224,7 +214,6 @@ public class SteelCogClient extends JFrame implements KeyListener {
 		for (int i = 0; i < myLavaWall.length; i++) {
 			myLavaWall[i].setX((int)((GameProperties.SCREEN_WIDTH*0.32)+(int)(i*(myLavaWall[i].getWidth()+25))));
 			myLavaWall[i].setY(50+(i*50));
-			myLavaWall[i].move();
 		}
 		FinishLabel.setLocation(myFinish.getX(), myFinish.getY());
 		BoxLabel.setLocation(myBox.getX(), myBox.getY());
@@ -249,7 +238,8 @@ public class SteelCogClient extends JFrame implements KeyListener {
 						try {
 							s2 = client.accept();
 							AService myService = new AService(s2, myAgentLime, myLavaWall[0], myLavaWall[1], myLavaWall[2],
-									myFinish, myBox, myStopBtn); //pass in lime label
+									myFinish, myBox, myGoal, myStopBtn, AgentLimeLabel, LavaWallLabel[0], LavaWallLabel[1], LavaWallLabel[2],
+									FinishLabel, BoxLabel, GoalLabel, timeLeft); //pass in lime label
 							Thread t = new Thread(myService);
 							t.start();
 						} catch (IOException e) {
@@ -288,7 +278,7 @@ public class SteelCogClient extends JFrame implements KeyListener {
 							out.flush();
 							s.close();
 							
-							moveArray[0]=0;moveArray[1]=1;
+							moveArray[0]=0;moveArray[1]=0;
 							myAgentLime.setIsSpace(0);
 							Thread.sleep(200);
 						} catch (IOException e) {
@@ -413,12 +403,14 @@ public class SteelCogClient extends JFrame implements KeyListener {
 							OutputStream outstream = s.getOutputStream();
 							PrintWriter out = new PrintWriter(outstream);
 
-							String command = "GETBOX\n";
+							String command = "GETBOX "+boxArray[0]+" "+boxArray[1]+"\n";
 							System.out.println("Sending: " + command);
 							out.println(command);
 							out.flush();
 							s.close();
-							Thread.sleep(50);
+							
+							moveArray[0]=0;moveArray[1]=0;
+							Thread.sleep(200);
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -450,7 +442,7 @@ public class SteelCogClient extends JFrame implements KeyListener {
 							out.println(command);
 							out.flush();
 							s.close();
-							Thread.sleep(50);
+							Thread.sleep(200);
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -462,6 +454,102 @@ public class SteelCogClient extends JFrame implements KeyListener {
 			}
 		});
 		t7.start();
+		
+		Thread t8 = new Thread(new Runnable() {
+			public void run() {
+				synchronized(this) {
+				
+					System.out.println("Fetch Goal.");
+					while(true) {
+						try {
+							//set up a communication socket
+							Socket s = new Socket("localhost", SERVER_PORT);
+							
+							//Initialize data stream to send data out
+							OutputStream outstream = s.getOutputStream();
+							PrintWriter out = new PrintWriter(outstream);
+
+							String command = "GETGOAL\n";
+							System.out.println("Sending: " + command);
+							out.println(command);
+							out.flush();
+							s.close();
+							Thread.sleep(200);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch(Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		});
+		t8.start();
+		
+		Thread t9 = new Thread(new Runnable() {
+			public void run() {
+				synchronized(this) {
+				
+					System.out.println("Fetch Time.");
+					while(true) {
+						try {
+							//set up a communication socket
+							Socket s = new Socket("localhost", SERVER_PORT);
+							
+							//Initialize data stream to send data out
+							OutputStream outstream = s.getOutputStream();
+							PrintWriter out = new PrintWriter(outstream);
+
+							String command = "GETTIME\n";
+							System.out.println("Sending: " + command);
+							out.println(command);
+							out.flush();
+							s.close();
+							Thread.sleep(1000);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch(Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		});
+		t9.start();
+		
+		Thread t10 = new Thread(new Runnable() {
+			public void run() {
+				synchronized(this) {
+				
+					System.out.println("Fetch StopBtn.");
+					while(true) {
+						try {
+							//set up a communication socket
+							Socket s = new Socket("localhost", SERVER_PORT);
+							
+							//Initialize data stream to send data out
+							OutputStream outstream = s.getOutputStream();
+							PrintWriter out = new PrintWriter(outstream);
+
+							String command = "GETSTOPBTN\n";
+							System.out.println("Sending: " + command);
+							out.println(command);
+							out.flush();
+							s.close();
+							Thread.sleep(200);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch(Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			}
+		});
+		t10.start();
 		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
@@ -510,14 +598,8 @@ public class SteelCogClient extends JFrame implements KeyListener {
 			}
 			if (myAgentLime.getCanMove()) {
 				moveArray[1]-=GameProperties.CHARACTER_STEP;
-				stepCnt++;
-				if (ay + myAgentLime.getHeight() < 0) {
-					ay = GameProperties.SCREEN_HEIGHT;
-					dimensionCnt++;
-					if (dimensionCnt==3) {score+=5000;}
-				}
-				if (myBox.getVisible() && myAgentLime.r.intersects(myBox.getRectangle())) {
-					by -= GameProperties.CHARACTER_STEP;
+				if (myAgentLime.r.intersects(myBox.getRectangle())) {
+					boxArray[1]-=GameProperties.CHARACTER_STEP;
 				}
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
@@ -531,14 +613,8 @@ public class SteelCogClient extends JFrame implements KeyListener {
 			}
 			if (myAgentLime.getCanMove()) {
 				moveArray[1]+=GameProperties.CHARACTER_STEP;
-				stepCnt++;
-				if (ay > GameProperties.SCREEN_HEIGHT) {
-					ay = -1 * myAgentLime.getHeight();
-					dimensionCnt++;
-					if (dimensionCnt==3) {score+=5000;}
-				}
-				if (myBox.getVisible() && myAgentLime.r.intersects(myBox.getRectangle())) {
-					by += GameProperties.CHARACTER_STEP;
+				if (myAgentLime.r.intersects(myBox.getRectangle())) {
+					boxArray[1]+=GameProperties.CHARACTER_STEP;
 				}
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
@@ -552,9 +628,8 @@ public class SteelCogClient extends JFrame implements KeyListener {
 				}
 			} if (myAgentLime.getCanMove()) {
 				moveArray[0]-=GameProperties.CHARACTER_STEP;
-				stepCnt++;
-				if (myBox.getVisible() && myAgentLime.r.intersects(myBox.getRectangle())) {
-					bx -= GameProperties.CHARACTER_STEP;
+				if (myAgentLime.r.intersects(myBox.getRectangle())) {
+					boxArray[0]-=GameProperties.CHARACTER_STEP;
 				}
 			}
 		} else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
@@ -568,46 +643,24 @@ public class SteelCogClient extends JFrame implements KeyListener {
 				}
 			} if (myAgentLime.getCanMove()) {
 				moveArray[0]+=GameProperties.CHARACTER_STEP;
-				stepCnt++;
-				if (myBox.getVisible() && myAgentLime.r.intersects(myBox.getRectangle())) {
-					bx += GameProperties.CHARACTER_STEP;
+				if (myAgentLime.r.intersects(myBox.getRectangle())) {
+					boxArray[0]+=GameProperties.CHARACTER_STEP;
 				}
-			}
-		} else if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-			moveArray[0]=0;
-			moveArray[1]=0;
-			myAgentLime.setIsSpace(1);
-			if (myAgentLime.r.intersects(myStopBtn.getRectangle())) {
-				if (!myStopBtn.getIsOn()) {
-					myStopBtn.setIsOn(true);
-					myStopBtn.setWasOn(true);
-					for (int i = 0; i < myLavaWall.length; i++) {
-						myLavaWall[i].setMoving(false);
-					}
-				} else {
-					myStopBtn.setIsOn(false);
-					for (int i = 0; i < myLavaWall.length; i++) {
-						myLavaWall[i].setMoving(true);
-					}
-				}
-			} else if (myAgentLime.r.intersects(myFinishBtn.getRectangle())) {
-				myFinish.setX(700);
-				myFinish.setY(50);
-				myFinish.setVisible(true);
-				FinishLabel.setLocation(myFinish.getX(), myFinish.getY());
 			}
 		}
+	}
 		
 		//comment out all 3 lines. do in AService
-		myAgentLime.setX(ax);
-		myAgentLime.setY(ay);
-		AgentLimeLabel.setLocation(myAgentLime.getX(), myAgentLime.getY());
+		//myAgentLime.setX(ax);
+		//myAgentLime.setY(ay);
+		//AgentLimeLabel.setLocation(myAgentLime.getX(), myAgentLime.getY());
 		
 		//comment out all 3 lines. do in AService
-		myBox.setX(bx);
-		myBox.setY(by);
-		BoxLabel.setLocation(myBox.getX(), myBox.getY());
+		//myBox.setX(bx);
+		//myBox.setY(by);
+		//BoxLabel.setLocation(myBox.getX(), myBox.getY());
 		
+		/*
 		if (myBox.getVisible() && myBox.r.intersects(myGoal.getRectangle())) {
 			myBox.setVisible(false); // don't know why but my visibility flag doesn't actually show/hide so I have to put it in an unseen spot
 			myBox.setX(9999);
@@ -617,14 +670,14 @@ public class SteelCogClient extends JFrame implements KeyListener {
 		}
 		
 		if (myFinish.getVisible() && myAgentLime.r.intersects(myFinish.getRectangle())) {
-			score+=(50000+(timeLeft*1000));
-			if (!myStopBtn.getWasOn()) {score+=5000;} // bonus if player never stopped moving obstacles
-			if (stepCnt<250) {score+=10000;} // stealth bonus
-			won = true;
+			//score+=(50000+(timeLeft*1000));
+			//if (!myStopBtn.getWasOn()) {score+=5000;} // bonus if player never stopped moving obstacles
+			//if (stepCnt<250) {score+=10000;} // stealth bonus
+			//won = true;
 		}
+		*/
 		
-		myAgentLime.setCanMove(true);
-	}
+		//myAgentLime.setCanMove(true);
 
 	@Override
 	public void keyReleased(KeyEvent e) {
